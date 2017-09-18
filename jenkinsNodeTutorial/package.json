@@ -1,0 +1,28 @@
+{
+  "name": "jenkinsNodeTutorial",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nanhosen/jenkinsNodeTutorial.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/nanhosen/jenkinsNodeTutorial/issues"
+  },
+  "homepage": "https://github.com/nanhosen/jenkinsNodeTutorial#readme",
+  "dependencies": {
+    "express": "^4.15.4"
+  },
+  "devDependencies": {
+    "mocha": "^3.5.3",
+    "should": "^13.0.1",
+    "supertest": "^3.0.0"
+  }
+}
