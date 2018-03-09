@@ -63,31 +63,205 @@ async function getStations(urlMeso) {
     return dataArray
 }
 
+
+// async function grabDoc(query,dbData){
+//   const dat = dbData;
+//   StnData.find(query,(err,dat)=>{
+//     if(err) console.log(err)
+//       else{
+//         // console.log('dbdata',dbData)
+//         const dbDates = dbData[0].dates;
+//         const dbMaxT = dbData[0].data.maxT;
+//         console.log('dbMaxT', dbMaxT)
+//         const maxTInsert = dbMaxT.concat(newMaxT);
+//         console.log('bigMax', maxTInsert.length, 'origMax', dbMaxT.length)
+//         // console.log('dbdates', dbDates)
+//         const dbDatesLen = dbDates.length;
+//         const lastDbDate = dbDates[dbDatesLen-1];
+//         if(lastDbDate == latestDate){
+//           console.log('nothing new')
+//         }
+//         else{
+//           console.log('theres a diff' + latestDate + lastDbDate)
+//         }
+//         // const dateDiff = latestDate - lastDbDate;
+//         // console.log('wxdata', wxData)
+//         // console.log('dateDiff', dateDiff)
+//         // if (dateDiff == 0){
+//         //   console.log('no new Data')
+//         // }
+//         // else{
+//         //   console.log('newData')
+//         // }
+//         return maxTInsert
+//       }
+//     }
+//   })
+// }
+
 async function createObject(data){
   const resp = await fixMissing(data)
   const finalObj = await makeObject(resp)
-  console.log('finalObj', finalObj)
+  // console.log('finalObj', finalObj)
   const station = finalObj.station;
   const elevation = finalObj.elevation;
   const timeZone = finalObj.timeZone;
   const dates = finalObj.dates;
   const wxData = finalObj.data;
+  const newMaxT = wxData.maxT;
+  const newMinT = wxData.minT;
+  const newAftT = wxData.aftT;
+  const newMaxTd = wxData.maxTd;
+  const newMinTd = wxData.minTd;
+  const newaftTd = wxData.aftTd;
+  const newMaxRh = wxData.maxRh;
+  const newMinRh = wxData.minRh;
+  const newAftRh = wxData.aftRh;
+  const dateLength = dates.length;
+  const latestDate = dates[dateLength-1];
+  const query = { station: station };
+  
 
-  const mongoObj = new StnData({
-    station,
-    elevation,
-    timeZone,
-    dates: dates,
-    data: wxData,
-  })
+  // StnData.find(query,(err,dbData)=>{
+  //   if(err) console.log(err)
+  //   else{
+  //     // console.log('dbdata',dbData)
+  //     console.log('lencheck');
+  //     const dbDates = dbData[0].dates;
+  //     console.log('dbDates');
+  //     const dbDatesLen = dbDates.length;
+  //     console.log('dbDatesLen');
+  //     const datesInsert = dbDates.concat(dates);
+  //     console.log('datesInsert');
+  //     const lastDbDate = dbDates[dbDatesLen-1];
+  //     console.log('lastDbDate');
+  //     const dbMaxT = dbData[0].data.maxT;
+  //     console.log('dbMaxT',dbMaxT.length);
+  //     const maxTInsert = dbMaxT.concat(newMaxT);
+  //     console.log('maxTInsert',maxTInsert.length);
+  //     const dbMinT = dbData[0].data.minT;
+  //     const minTInsert = dbMinT.concat(newMinT);
+  //     const dbAftT = dbData[0].data.aftT;
+  //     const aftTInsert = dbAftT.concat(newAftT);
+  //     const dbMaxTd = dbData[0].data.maxTd;
+  //     const maxTdInsert = dbMaxTd.concat(newMaxTd);
+  //     const dbMinTd = dbData[0].data.minTd;
+  //     const minTdInsert = dbMinTd.concat(newMinTd);
+  //     const dbAftTd = dbData[0].data.aftTd;
+  //     const aftTdInsert = dbAftTd.concat(newAftTd);
+  //     // console.log('lencheck',dbAftTd.length,'new', aftTdInsert.length)
+  //     const dbMaxRh = dbData[0].data.maxRh;
+  //     const maxRhInsert = dbMaxRh.concat(newMaxRh);
+  //     const dbMinRh = dbData[0].data.minRh;
+  //     const minRhInsert = dbMinRh.concat(newMinRh);
+  //     const dbAftRh = dbData[0].data.aftRh;
+  //     const aftRhInsert = dbAftRh.concat(newAftRh);
+  //     const newWxData = {
+  //       "maxT" : maxTInsert,
+  //       "minT" : minTInsert,
+  //       "aftT" : aftTInsert,
+  //       "maxTd" : maxTdInsert,
+  //       "minTd" : minTdInsert,
+  //       "aftTd" : minTdInsert,
+  //       "maxRh" : maxRhInsert,
+  //       "minRh" : minRhInsert,
+  //       "aftRh" : aftRhInsert
+  //     }
+  //     const newInsert = { 
+  //     station,
+  //     elevation,
+  //     timeZone,
+  //     dates: datesInsert,
+  //     data: newWxData,
+  //   };
+  //     if(lastDbDate == latestDate){
+  //       console.log('nothing new')
+  //     }
+  //     else{
+  //       console.log('theres a diff' + latestDate + lastDbDate)
+  //     }
+  //     // const dateDiff = latestDate - lastDbDate;
+  //     // console.log('wxdata', wxData)
+  //     // console.log('dateDiff', dateDiff)
+  //     // if (dateDiff == 0){
+  //     //   console.log('no new Data')
+  //     // }
+  //     // else{
+  //     //   console.log('newData')
+  //     // }
+  //     return newInsert
+  //   }
+  // })
+  // .then((doc)=>{
+  //   // console.log('doc', doc)
+  //   const station1 = doc[0].station;
+  //   console.log(station1,'stn1')
+  //   const elevation1 = doc[0].elevation;
+  //   const timeZone1 = doc[0].timeZone;
+  //   const dates1 = doc[0].dates;
+  //   const data1 = doc[0].data;
+  //   const newDbInsert= { 
+  //     station1,
+  //     elevation1,
+  //     timeZone1,
+  //     dates: dates1,
+  //     data: data1,
+  //   };
+  //   console.log(newDbInsert,'insert')
+  //   const newDbDoc = new StnData(newDbInsert);
+  //   newDbDoc.save(err => {
+  //     if (err) throw err
+  //     console.log('entry created')
+  //   })
+  // })
+  // const mongoObj = new StnData({
+  //   station,
+  //   elevation,
+  //   timeZone,
+  //   dates: dates,
+  //   data: wxData,
+  // })
 
-  mongoObj.save(err => {
-    if (err) throw err
-      console.log('entry created')
-  })
-  .catch(err => console.log(err))
+  // mongoObj.save(err => {
+  //   if (err) throw err
+  //     console.log('entry created')
+  // })
+  // .catch(err => console.log(err))
+  // console.log('insert out of function', maxTInserts)
+  const newData = { 
+      station,
+      elevation,
+      timeZone,
+      dates: dates,
+      data: wxData,
+  };
 
+  StnData.findOneAndUpdate( query, newData, {upsert: true} ,
+    function(err, doc) {
+      if (err) {
+        console.log("error in updateStation", err)
+        throw new Error('error in updateStation')
+      }
+      else {
+        // async function respond() {
+        //   try {
+        //     const [ isCritical, status ] = await Promise.all([
+        //       genErcData(),
+        //       new UpdateStatus.statusArray(),
+        //     ])            
+        //     ctx.body = { "message": "update successful", isCritical, status }
+        //                   console.log('hi')
 
+        //   }
+        //   catch (error) {
+        //     console.log(error)
+        //   }
+        // }
+        // respond()
+        // console.log('hi', newData)
+      }
+    }
+  )
   // console.log('stn',stn)
   // fs.writeFile(`./stnData/`+stn+`wxData.json`, JSON.stringify(finalObj), err => {
   //   if (err) {
