@@ -102,18 +102,21 @@ async function getStations(urlMeso) {
 async function createObject(data){
   const resp = await fixMissing(data)
   const finalObj = await makeObject(resp)
-  // console.log('finalObj', finalObj)
+  console.log('finalObj', finalObj)
   const station = finalObj.station;
   const elevation = finalObj.elevation;
   const timeZone = finalObj.timeZone;
   const dates = finalObj.dates;
   const wxData = finalObj.data;
+  const wxDataObj = finalObj.data[0];
+  // console.log('wxData', wxData)
+  console.log('wxDataObj', wxDataObj)
   const newMaxT = wxData.maxT;
   const newMinT = wxData.minT;
   const newAftT = wxData.aftT;
   const newMaxTd = wxData.maxTd;
   const newMinTd = wxData.minTd;
-  const newaftTd = wxData.aftTd;
+  const newAftTd = wxData.aftTd;
   const newMaxRh = wxData.maxRh;
   const newMinRh = wxData.minRh;
   const newAftRh = wxData.aftRh;
@@ -214,6 +217,8 @@ async function createObject(data){
   //     console.log('entry created')
   //   })
   // })
+
+
   // const mongoObj = new StnData({
   //   station,
   //   elevation,
@@ -228,6 +233,8 @@ async function createObject(data){
   // })
   // .catch(err => console.log(err))
   // console.log('insert out of function', maxTInserts)
+  // console.log('newMaxt', newMaxT)
+  const testMaxT = ['a','b','c','d','e'];
   const newData = { 
       station,
       elevation,
@@ -235,14 +242,35 @@ async function createObject(data){
       dates: dates,
       data: wxData,
   };
+  const datesTest = ['a','b','c','d','e'];
+  const newMaxTtest = ['a','b','c','d','e'];
+  const newMinTtest = ['a','b','c','d','e'];
+  const newAftTtest = ['a','b','c','d','e'];
+  const update = {
+    $set: {'station': station, 'elevation': elevation, 'timeZone': timeZone},
+    $push: {
+      'dates': dates,
+      'data.maxT': newMaxT, 
+      'data.minT': newMinT, 
+      'data.aftT': newAftT,
+      'data.maxTd': newMaxTd, 
+      'data.minTd': newMinTd, 
+      'data.aftTd': newAftTd,
+      'data.maxRh': newMaxRh, 
+      'data.minRh': newMinRh, 
+      'data.aftRh': newAftRh
+    }
+   };
+    // $push: {'dates': dates, 'data': wxData}};
 
-  StnData.findOneAndUpdate( query, newData, {upsert: true} ,
+  StnData.findOneAndUpdate( query, update, {upsert: true} ,
     function(err, doc) {
       if (err) {
         console.log("error in updateStation", err)
         throw new Error('error in updateStation')
       }
       else {
+        console.log('saved')
         // async function respond() {
         //   try {
         //     const [ isCritical, status ] = await Promise.all([
@@ -262,6 +290,9 @@ async function createObject(data){
       }
     }
   )
+
+
+
   // console.log('stn',stn)
   // fs.writeFile(`./stnData/`+stn+`wxData.json`, JSON.stringify(finalObj), err => {
   //   if (err) {
@@ -289,7 +320,8 @@ function requestStationData(g){
   const stnArray = g;
   const arrayLen = stnArray.length;
   const axiosArray = [];
-  console.log(JSON.stringify(stnArray))
+  // console.log(JSON.stringify(stnArray))
+  console.log('in requestStationData')
   stnArray.map((curr,i)=>{
     const stn = curr;
     const reqUrl = "https://api.synopticlabs.org/v2/stations/timeseries?&token=ea0ea69fd87b4eac81bfc08cb270b8e8&start=200701010000&end=200710312359&obtimezone=utc&output=json&stid=" + stn;
