@@ -1,131 +1,147 @@
 const axios = require("axios");
-const calcVars = require('./calcVars.js')
-// const addMissingDates = require('./addMissingDates.js')
+const mongoose = require('mongoose')
+const fixMissing = require('./fixMissing.js')
+const makeObject = require('./makeObject.js')
+const makeRequestDate = require('./makeRequestDateClean.js')
 const fs = require('fs')
-const url = "https://api.synopticdata.com//v2/stations/metadata?gacc=gbcc&network=1,2&sensorvars=1&token=ea0ea69fd87b4eac81bfc08cb270b8e8";
-// const getLocation = async url => {
-//   try {
-//     const resp = await axios.get(url);
-//     const data = resp.data;
-//     const dataArray = filterStations(data);
-//     console.log(dataArray)
+const config = require('./config')
+const StnData = require('./models/stnData')
+const urlMeso = "https://api.synopticdata.com//v2/stations/metadata?gacc=gbcc&network=1,2&sensorvars=1&token=ea0ea69fd87b4eac81bfc08cb270b8e8";
+const mongoKey = "XJGyTcrWEYUrzsEcUnxqany6FK7XsECM";
 
-//     // console.log(data)
-//   } catch (error) {
-//     console.log(error);
-//   }
 
-// };
-// getLocation(url);
 
-getStations(url)
-  // .then(e => console.log(e))
+mongoose.connect('mongodb://nanhosen:pray4sno@ds213338.mlab.com:13338/wxdata', err => { 
+  if (err) throw err
+
+})
+
+
+
+getStations(urlMeso)
   .then((g)=>{requestStationData(g)})
-  // .then((h)=>{console.log(h)}) Here send to mongo or save to file system?
 
 
-async function getStations(url) {
-    const resp = await axios.get(url);
+async function getStations(urlMeso) {
+    const resp = await axios.get(urlMeso);
     const data = resp.data;
-    // console.log(data)
     const dataArray = filterStations(data);
     return dataArray
 }
 
-function requestStationData(g){
+
+
+
+async function createObject(data){
+  const resp = await fixMissing(data)
+  const finalObj = await makeObject(resp)
+  const station = finalObj.station;
+  const elevation = finalObj.elevation;
+  const timeZone = finalObj.timeZone;
+  const dates = finalObj.dates;
+  const wxData = finalObj.data;
+  const wxDataObj = finalObj.data[0];
+  const newMaxT = wxData.maxT;
+  const newMinT = wxData.minT;
+  const newAftT = wxData.aftT;
+  const newMaxTd = wxData.maxTd;
+  const newMinTd = wxData.minTd;
+  const newAftTd = wxData.aftTd;
+  const newMaxRh = wxData.maxRh;
+  const newMinRh = wxData.minRh;
+  const newAftRh = wxData.aftRh;
+  const dateLength = dates.length;
+  const latestDate = dates[dateLength-1];
+  const query = { station: station };
+  
+
+  // const datesTest =   ["2007-10-28","2007-10-29","2007-10-30","2007-10-31"];
+  // const newMaxTtest = ['f','g','h','i','j'];
+  const update = {
+    $set: {'station': station, 'elevation': elevation, 'timeZone': timeZone},
+    $push: {
+      'dates': dates,
+      'data.maxT': newMaxT, 
+      'data.minT': newMinT, 
+      'data.aftT': newAftT,
+      'data.maxTd': newMaxTd, 
+      'data.minTd': newMinTd, 
+      'data.aftTd': newAftTd,
+      'data.maxRh': newMaxRh, 
+      'data.minRh': newMinRh, 
+      'data.aftRh': newAftRh
+    }
+   };
+
+  StnData.findOneAndUpdate( query, update, {upsert: true} ,
+    function(err, doc) {
+      if (err) {
+        console.log("error in updateStation", err)
+        throw new Error('error in updateStation')
+      }
+      else {
+        console.log('saved')
+        
+      }
+    }
+  )
+
+
+
+}
+
+
+
+async function requestStationData(g){
   const stnArray = g;
   const arrayLen = stnArray.length;
-  const shortArray = [];
-  // var p = axios.get
-  stnArray.map((curr,i)=>{
+  const axiosArray = [];
+  console.log('in requestStationData')
+  const reqArray = await Promise.all(stnArray.map(async curr => {
+    const wxStn = curr;
+    const query = { station: wxStn };
+    const dateEnd = await StnData.find(query,(err,dbData)=>{
+      if(err) console.log(err)
+    })
+    if(dateEnd.length>0){
+      const dbDates = dateEnd[0].dates;
+      const dbDatesLen = dbDates.length;
+      const lastDbDate = dbDates[dbDatesLen-1];
+      const lastDbDateNoSpace = lastDbDate.replace(/-/g,"")
+      console.log('lastdate from getDate',lastDbDateNoSpace)
+      const makeDate = makeRequestDate(lastDbDateNoSpace,wxStn);
+      return makeDate
+    }
+    else{
+      const fistDate = "2006-12-31";
+      const firstDateNoSpace = fistDate.replace(/-/g,"")
+      const makeDate = makeRequestDate(firstDateNoSpace,wxStn);
+      return makeDate
+        }
+  }))
+  reqArray.map((curr,i)=>{
     const stn = curr;
-    //if(i<4){
-      shortArray.push(curr)
-    //}
-
+    const reqUrl = curr;
+      const axiosReq = axios.get(reqUrl);
+      axiosArray.push(axiosReq)
   })
-  const reqUrl1 = "https://api.synopticlabs.org/v2/stations/timeseries?&token=ea0ea69fd87b4eac81bfc08cb270b8e8&start=200701010000&end=200702030000&obtimezone=utc&output=json&stid=" + shortArray[143];
-  var p1 = axios.get(reqUrl1);
 
-  const reqUrl2 = "https://api.synopticlabs.org/v2/stations/timeseries?&token=ea0ea69fd87b4eac81bfc08cb270b8e8&start=200701010000&end=200702030000&obtimezone=utc&output=json&stid=" + shortArray[144];
-  var p2 = axios.get(reqUrl2);
-
-  const reqUrl3 = "https://api.synopticlabs.org/v2/stations/timeseries?&token=ea0ea69fd87b4eac81bfc08cb270b8e8&start=200701010000&end=200702030000&obtimezone=utc&output=json&stid=" + shortArray[145];
-  var p3 = axios.get(reqUrl3);
-
-  Promise.all([p1,p2,p3])
-  .then((values)=>
+  Promise.all(axiosArray)
+  .then((values)=>{
     values.map((curr,i)=>{
       const data = curr.data;
-      const stn = data.STATION[0].STID;
-      const cal = calcVars(data)
-      // console.log('data', data.STATION[0].STID)
-      fs.writeFile(`./`+stn+`wxData.json`, JSON.stringify(cal), err => {
-        if (err) {
-          return console.log(err)
-        }
-        console.log("file saved")
-      })
+      if (data.SUMMARY.NUMBER_OF_OBJECTS>0){
+        const stn = data.STATION[0].STID;
+      const newObj = createObject(data)
+
+      }
+      else{
+        console.log('no stnData',i)
+      }
     })
-   )
+   })
 }
     
-// function requestStationData(g){
-//   // if(g[0]=="KSLC"){
-//   //   console.log('hey')
-//   // }
-//   // const stn = g[0];
-//   const stnArray = g;
-//   stnArray.map((curr,i)=>{
-//     const stn = curr;
-//     console.log('stn',stn)
-//     const reqUrl = "https://api.synopticlabs.org/v2/stations/timeseries?&token=ea0ea69fd87b4eac81bfc08cb270b8e8&start=200701010000&end=200702030000&obtimezone=utc&output=json&stid=" + stn;
-//     async function getData(reqUrl){
-//       const response = await axios.get(reqUrl);
-//       const data = response.data;
-//       const cal = calcVars(data)
-//       // fs.writeFile(`./`+stn+`wxData.json`, JSON.stringify(cal), err => {
-//       //     if (err) {
-//       //       return console.log(err)
-//       //     }
-//       //     console.log("file saved")
-//       // return cal  
-//       // }
-//     })
-//   })
-//   // console.log('data', data.STATION[0].OBSERVATIONS.altimeter_set_1)
-//   // console.log(JSON.stringify(data))
-//   // console.log(cal)
-// }
-
-
-// async function searchForDoctorWho() {
-//     try {
-//         const albums = await searchItunes("https://api.synopticdata.com//v2/stations/metadata?gacc=gbcc&network=1,2&sensorvars=1&token=ea0ea69fd87b4eac81bfc08cb270b8e8");
-//         // for (const album of albums) {
-//         //     console.log(album);
-//         // }
-//         const data = albums;
-//         const dataArray = filterStations(data);
-//         // console.log('dataArray', dataArray)
-//         return dataArray
-//     } catch (err) {
-//         console.error(`Failed to retrieve results: ${err.message}`);
-//         throw err;
-//     }
-// }
-
-// function printResult(e){
-//   var f = e[0];
-//   return f
-//   // console.log('f',f)
-// }
-
-// // searchItunes(url)
-// searchForDoctorWho()
-//     // .catch(err => console.log(err.message));
-//     .then((e)=>{printResult(e)})
-//     .then((g)=>{sayHi(g)})
 
 
 
@@ -147,20 +163,9 @@ function filterStations(data){
     var sensorVariables = curr.SENSOR_VARIABLES;
     var por = (porEndUnix - porStartUnix)/millisecondYear;
     if((por >= 5) && (status == "ACTIVE")){
-      // var sensorVariablesArray = Object.keys(sensorVariables)
-      // var isAirTemp = sensorVariablesArray.includes('air_temp');
-      // var isPrecip = sensorVariablesArray.includes('precip_accum_one_hour');
-      // var isDewPt = sensorVariablesArray.includes('dew_point_temperature');
-      // var isWindSpeed = sensorVariablesArray.includes('wind_speed');
-      // var isWindGust = sensorVariablesArray.includes('wind_gust');
-      // var isRH = sensorVariablesArray.includes('relative_humidity');
-      // var stnVariables = [stnId,sensorVariablesArray];
-       // variableArray.push(stnVariables)
+
        stnArray.push(stnId);
     }
   },[])
-  // console.log(stnArray)
   return stnArray
-  // var variableArrayMap = new Map(variableArray)
-  // console.log(JSON.stringify(stnArray))dataArray
 }
